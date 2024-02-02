@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controller/login_controller.dart';
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -31,8 +36,9 @@ class LoginForm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(loginControllerProvider);
-    final hidePasswordNotifier = ref.watch(hidePasswordProvider.notifier);
-    final rememberMeNotifier = ref.watch(rememberMeProvider.notifier);
+    final hidePasswordNotifier = ref.watch(hidePasswordProvider);
+    final rememberMeNotifier = ref.watch(rememberMeProvider);
+    final invalidCredentials = ref.watch(invalidCredentialsProvider);
 
     return Form(
       key: controller.loginFormKey,
@@ -56,7 +62,7 @@ class LoginForm extends ConsumerWidget {
             const SizedBox(height: 10),
 
             TextFormField(
-              obscureText: hidePasswordNotifier.state,
+              obscureText: hidePasswordNotifier,
               controller: controller.password,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -68,12 +74,18 @@ class LoginForm extends ConsumerWidget {
                 labelText: 'Password',
                 prefixIcon: const Icon(Icons.enhanced_encryption),
                 suffixIcon: IconButton(
-                  onPressed: () => hidePasswordNotifier.toggle(),
+                  onPressed: () => ref.read(hidePasswordProvider.notifier).toggle(),
                   icon: const Icon(Icons.remove_red_eye),
                 ),
               ),
             ),
             const SizedBox(height: 5),
+
+            if (invalidCredentials)
+              const Text(
+                'Invalid credentials. Please check your email and password.',
+                style: TextStyle(color: Colors.red),
+              ),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -82,8 +94,8 @@ class LoginForm extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Checkbox(
-                      value: rememberMeNotifier.state,
-                      onChanged: (value) => rememberMeNotifier.toggle(),
+                      value: rememberMeNotifier,
+                      onChanged: (value) => ref.read(rememberMeProvider.notifier).toggle(),
                     ),
                     const Text('Remember Me'),
                   ],
@@ -114,6 +126,10 @@ class LoginForm extends ConsumerWidget {
   }
 }
 
+
+
+
+
 class LoginHeader extends StatelessWidget {
   const LoginHeader({Key? key}) : super(key: key);
 
@@ -125,7 +141,7 @@ class LoginHeader extends StatelessWidget {
         children: [
           // Add your header widgets here
           Text(
-            'Welcome to MyApp',
+            'Welcome to VOCO',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,

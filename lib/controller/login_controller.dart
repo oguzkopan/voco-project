@@ -20,6 +20,10 @@ final hidePasswordProvider = StateNotifierProvider<HidePasswordNotifier, bool>((
   return HidePasswordNotifier();
 });
 
+final invalidCredentialsProvider = StateNotifierProvider<InvalidCredentialsNotifier, bool>((ref) {
+  return InvalidCredentialsNotifier();
+});
+
 class RememberMeNotifier extends StateNotifier<bool> {
   RememberMeNotifier() : super(false);
 
@@ -36,6 +40,13 @@ class HidePasswordNotifier extends StateNotifier<bool> {
   }
 }
 
+class InvalidCredentialsNotifier extends StateNotifier<bool> {
+  InvalidCredentialsNotifier() : super(false);
+
+  void setInvalidCredentials(bool value) {
+    state = value;
+  }
+}
 
 mixin CacheManager {
   Future<bool> saveToken(String token) async {
@@ -79,16 +90,23 @@ class LoginController with CacheManager {
     final user = User(email: email.text, password: password.text);
 
     // Make login request
-    final token = await makeLoginRequest(user);
+    final token = await makeLoginRequest(user, ref);
+    print("TOKEN: $token");
 
-    // Save token using CacheManager
-    await saveToken(token!);
+    if (token != null) {
+      // Save token using CacheManager
+      await saveToken(token);
 
-    // If token is not null, navigate to HomePage
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
+      // If token is not null, navigate to HomePage
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
+    } else {
+      // Set invalidCredentials to true if login fails
+      ref.read(invalidCredentialsProvider.notifier).setInvalidCredentials(true);
     }
+  }
 
-  Future<String?> makeLoginRequest(User user) async {
+
+  Future<String?> makeLoginRequest(User user, WidgetRef ref) async {
     try {
       final response = await loginService.fetchLogin(UserRequestModel(email: user.email, password: user.password));
 
@@ -96,15 +114,18 @@ class LoginController with CacheManager {
         return response.token ?? '';
       } else {
         // Handle unsuccessful login
-        // For now, returning null, but you may want to handle errors better
+        // Set invalidCredentials to true
+        ref.read(invalidCredentialsProvider.notifier).setInvalidCredentials(true);
         return null;
       }
     } catch (e) {
       // Handle network errors
-      // For now, returning null, but you may want to handle errors better
+      // Set invalidCredentials to true
+      ref.read(invalidCredentialsProvider.notifier).setInvalidCredentials(true);
       return null;
     }
   }
+
 }
 
 final loginControllerProvider = Provider((ref) => LoginController());
